@@ -133,6 +133,12 @@ auth.onAuthStateChanged(async user=>{
 function esc(s){return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
 function current(){return db.leagues.find(x=>x.id===selected)||db.leagues[0]}
 let selected=null;
+    let liveRoomId = null;
+let livePeers = {};
+let liveSignalUnsubs = [];
+let liveRoomUnsub = null;
+let liveScreenStream = null;
+let liveLocalStream = null;
 let selectedTeamProfile="";
 let tableMode="league";
 let adminMatchLeague="";
