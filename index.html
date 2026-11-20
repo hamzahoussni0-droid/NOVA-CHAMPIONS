@@ -700,6 +700,70 @@ async function loadPlayerTeams(){
     box.innerHTML='<p class="muted">تعذر تحميل الفرق: '+esc(e.message||e)+'</p>';
   }
 }
+  async function createLiveRoom(){
+  if(!currentUser)return alert("خاصك تسجل الدخول أولاً");
+
+  const input=document.getElementById("liveRoomName");
+  const name=input?.value.trim();
+
+  if(!name)return alert("كتب اسم الغرفة");
+
+  try{
+    const roomRef=cloud.collection("liveRooms").doc();
+
+    await roomRef.set({
+      name,
+      ownerUid:currentUser.uid,
+      ownerEmail:currentUser.email||"",
+      createdAt:firebase.firestore.FieldValue.serverTimestamp(),
+      active:true
+    });
+
+    input.value="";
+    alert("تم إنشاء الغرفة بنجاح");
+    loadLiveRooms();
+
+  }catch(e){
+    alert("تعذر إنشاء الغرفة: "+(e.message||e));
+  }
+}
+
+async function loadLiveRooms(){
+  const box=document.getElementById("liveRoomsList");
+  if(!box||!currentUser)return;
+
+  box.innerHTML='<p class="muted">جاري تحميل الغرف...</p>';
+
+  try{
+    const snap=await cloud.collection("liveRooms")
+      .where("active","==",true)
+      .get();
+
+    if(!document.getElementById("liveRoomsList"))return;
+
+    if(snap.empty){
+      box.innerHTML='<p class="muted">لا توجد غرف بث حالياً</p>';
+      return;
+    }
+
+    box.innerHTML=snap.docs.map(doc=>{
+      const room=doc.data();
+
+      return `
+        <div class="card">
+          <h3>${esc(room.name||"غرفة بدون اسم")}</h3>
+          <p class="muted">المنشئ: ${esc(room.ownerEmail||"لاعب")}</p>
+          <button class="btn primary" onclick="joinLiveRoom('${doc.id}')">
+            دخول الغرفة
+          </button>
+        </div>
+      `;
+    }).join("");
+
+  }catch(e){
+    box.innerHTML='<p class="muted">تعذر تحميل الغرف: '+esc(e.message||e)+'</p>';
+  }
+}
 async function playerSave(){
   const uid=currentUser?.uid;
   if(!uid)return;
