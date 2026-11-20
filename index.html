@@ -661,8 +661,8 @@ const logoUrl=logoFile?await uploadTeamImage(logoFile):(oldTeam.logoUrl||"");
     });
 
     await cloud.collection("playerTeams").doc(uid).update({
-      name:teamName,overall,formation,updatedAt:now
-    });
+  name:teamName,overall,formation,logoUrl,updatedAt:now
+});
 
     err.textContent="تم حفظ التعديلات بنجاح ❤️";
   }catch(e){
