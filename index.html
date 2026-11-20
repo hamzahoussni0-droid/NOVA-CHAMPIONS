@@ -364,7 +364,8 @@ if(page==="admin"){el.innerHTML=isAdmin?`<div class="admin-head"><div><h2>${t("d
   </div>
 </section>
 ${adminNewsManager()}${adminMatchesManager()}`:`<h2>${t("login")}</h2><div class="form"><p class="muted">${t("adminHint")}</p>${currentUser?`<div class="card"><b>Firebase admin check</b><p>Project ID: <code>${esc(firebase.app().options.projectId)}</code></p><p>Signed-in UID: <code>${esc(adminCheck.uid||currentUser.uid)}</code></p><p>Document path: <code>${esc(adminCheck.path)}</code></p><p>Document exists: <b>${adminCheck.exists===null?"not confirmed":String(adminCheck.exists)}</b></p><p>Role field: <b>${esc(adminCheck.role)}</b></p><p>Status: <b>${esc(adminCheck.state)}</b></p>${adminCheck.error?`<p style="color:#f88">${esc(adminCheck.error)}</p>`:""}<button class="btn" onclick="auth.signOut()">${t("logout")}</button></div>`:`<label>${t("username")}</label><input id="user" type="email" placeholder="admin@example.com" autocomplete="username"><label>${t("password")}</label><input id="pass" type="password" autocomplete="current-password"><button class="btn primary" onclick="login()">${t("login")}</button><p id="err" class="muted"></p>`}</div>`}
-}
+if(page==="admin" && isAdmin) loadAdminPlayerTeams();
+  }
 async function login(){
   const email=document.getElementById("user").value.trim(), password=document.getElementById("pass").value;
   const err=document.getElementById("err");
