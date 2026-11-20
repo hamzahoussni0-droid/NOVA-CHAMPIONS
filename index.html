@@ -236,7 +236,57 @@ function cupClassementView(l){
 function championsClassementView(l){const rows=standings(l),ms=db.matches.filter(m=>String(m.league)===String(l.id)&&m.champions),stages=[{key:"playoff",label:t("playoffStage")},{key:"knockout",label:t("knockoutStage")}];return `<div class="standings-head"><div><strong>${esc(l.name)}</strong><div class="muted">${esc(l.season||"")} • ${(l.teams||[]).length} ${t("teams")} • 8 ${lang==="ar"?"مباريات لكل فريق":"matches per team"}</div></div><span class="pill">CHAMPIONS LEAGUE</span></div><div class="competition-subhead">${t("leaguePhase")}</div><div class="standings-scroll"><table class="standings-table"><thead><tr><th>#</th><th style="text-align:start">${t("teams")}</th><th>${t("p")}</th><th>${t("w")}</th><th>${t("d")}</th><th>${t("l")}</th><th>${t("gf")}</th><th>${t("ga")}</th><th>${t("gd")}</th><th>${t("pts")}</th></tr></thead><tbody>${rows.map((x,i)=>`<tr><td><span class="rank-badge ${i===0?"gold":i===1?"silver":i===2?"bronze":""}">${i+1}</span></td><td class="team-cell"><span class="team-mark">${esc((x.name||"?").trim().slice(0,2).toUpperCase())}</span>${esc(x.name)}</td><td>${x.p}</td><td>${x.w}</td><td>${x.d}</td><td>${x.l}</td><td>${x.gf}</td><td>${x.ga}</td><td class="${x.gd>0?"gd-positive":x.gd<0?"gd-negative":""}">${x.gd>0?"+":""}${x.gd}</td><td class="points-cell">${x.pts}</td></tr>`).join("")||`<tr><td colspan="10" class="muted">${t("empty")}</td></tr>`}</tbody></table></div><div class="competition-subhead">${lang==="ar"?"المراحل الإقصائية":lang==="fr"?"Phases à élimination":"Knockout stages"}</div>${stages.map(stage=>{const matches=ms.filter(m=>m.stage===stage.key);return matches.length?`<div class="stage-card"><b>${stage.label}</b>${matches.map(m=>`<div class="stage-match"><span>${esc(m.h)}</span><b class="stage-score">${m.hs===null||m.as===null?"— : —":`${m.hs} - ${m.as}`}</b><span>${esc(m.a)}</span></div>`).join("")}</div>`:""}).join("")||`<p class="muted">${t("empty")}</p>`}<button class="btn primary" onclick="go('matches');selected='${String(l.id)}'">${t("matches")}</button>`}
 
 function openTeamProfile(encodedName){selectedTeamProfile=decodeURIComponent(encodedName);page="teamProfile";render()}
-function teamProfileView(){const name=selectedTeamProfile,team=(db.teams||[]).find(x=>x.name===name)||{name},st=teamStats(name),players=team.players||[],phone=(team.whatsapp||"").replace(/[^0-9]/g,"");return `<button class="btn" onclick="page='matches';render()">← رجوع للمباريات</button><section class="card" style="text-align:center;margin-top:12px">${team.imageUrl?`<img src="${esc(team.imageUrl)}" alt="صورة ${esc(name)}" style="width:112px;height:112px;object-fit:cover;border-radius:50%;border:2px solid var(--gold)">`:`<div class="team-mark" style="width:90px;height:90px;border-radius:50%;margin:12px auto;font-size:25px">${esc(name.slice(0,2).toUpperCase())}</div>`}<h2>${esc(name)}</h2><div class="stats"><div class="stat"><b>${st.p}</b>المباريات</div><div class="stat"><b>${st.w}</b>انتصارات</div><div class="stat"><b>${st.d}</b>تعادلات</div><div class="stat"><b>${st.l}</b>هزائم</div><div class="stat"><b>${st.gf}</b>أهداف مسجلة</div><div class="stat"><b>${st.ga}</b>أهداف مستقبلة</div><div class="stat"><b>${st.pts}</b>النقاط</div><div class="stat"><b>${st.fans}</b>الأنصار</div><div class="stat"><b>${st.p?Math.round(st.w/st.p*100):0}%</b>نسبة الفوز</div></div>${players.length?`<h3>لائحة اللاعبين</h3><div class="card">${players.map((p,i)=>`<div class="row"><span>${i+1}. ${esc(p)}</span></div>`).join("")}</div>`:`<p class="muted">لائحة اللاعبين غير متوفرة حالياً</p>`}${phone?`<a class="btn primary" style="display:block;text-decoration:none;margin-top:14px" href="https://wa.me/${phone}" target="_self">تواصل عبر WhatsApp</a>`:`<p class="muted">رقم WhatsApp غير متوفر</p>`}</section>`}
+
+async function teamProfileView(){
+  const name=selectedTeamProfile;
+  const team=(db.teams||[]).find(x=>x.name===name)||{name};
+  const st=teamStats(name);
+
+  let playerTeam={};
+  let owner={};
+
+  try{
+    const snap=await cloud.collection("playerTeams")
+      .where("name","==",name).limit(1).get();
+
+    if(!snap.empty){
+      playerTeam=snap.docs[0].data();
+      const profile=await cloud.collection("playerProfiles")
+        .doc(playerTeam.ownerUid).get();
+      if(profile.exists) owner=profile.data();
+    }
+  }catch(e){
+    console.log("Player team lookup:",e);
+  }
+
+  const image=team.imageUrl||playerTeam.logoUrl||"";
+  const phone=(team.whatsapp||owner.phone||"").replace(/\D/g,"");
+  const players=team.players||[];
+
+  const el=document.getElementById("app");
+  if(!el)return;
+
+  el.innerHTML=`<button class="btn" onclick="page='matches';render()">← رجوع للمباريات</button>
+  <section class="card" style="text-align:center;margin-top:12px">
+    ${image?`<img src="${esc(image)}" alt="صورة الفريق" style="width:112px;height:112px;object-fit:cover;border-radius:50%;border:2px solid var(--gold)">`:`<div class="team-mark" style="width:90px;height:90px;border-radius:50%;margin:12px auto;font-size:25px">${esc(name.slice(0,2).toUpperCase())}</div>`}
+    <h2>${esc(name)}</h2>
+    ${owner.name?`<p>صاحب الفريق: ${esc(owner.name)}</p>`:""}
+    <div class="stats">
+      <div class="stat"><b>${st.p}</b>المباريات</div>
+      <div class="stat"><b>${st.w}</b>انتصارات</div>
+      <div class="stat"><b>${st.d}</b>تعادلات</div>
+      <div class="stat"><b>${st.l}</b>هزائم</div>
+      <div class="stat"><b>${st.gf}</b>أهداف مسجلة</div>
+      <div class="stat"><b>${st.ga}</b>أهداف مستقبلة</div>
+      <div class="stat"><b>${st.pts}</b>النقاط</div>
+      <div class="stat"><b>${st.fans}</b>الأنصار</div>
+      <div class="stat"><b>${st.p?Math.round(st.w/st.p*100):0}%</b>نسبة الفوز</div>
+    </div>
+    ${players.length?`<h3>لائحة اللاعبين</h3><div class="card">${players.map((p,i)=>`<div class="row"><span>${i+1}. ${esc(p)}</span></div>`).join("")}</div>`:""}
+    ${phone?`<a class="btn primary" style="display:block;text-decoration:none;margin-top:14px" href="https://wa.me/${phone}" target="_blank">تواصل عبر WhatsApp</a>`:`<p class="muted">رقم WhatsApp غير متوفر</p>`}
+  </section>`;
+}
+  
 function matchesView(l){
   if(!l)return `<h2>${t("matches")}</h2>${leagueSelect()}<p class="muted">${t("noLeagues")}</p>`;
   const leagueMatches=db.matches.filter(m=>String(m.league)===String(l.id));
