@@ -765,34 +765,6 @@ async function loadLiveRooms(){
     box.innerHTML='<p class="muted">تعذر تحميل الغرف: '+esc(e.message||e)+'</p>';
   }
 }
-let currentLiveRoomId=null;
-
-function joinLiveRoom(roomId){
-  currentLiveRoomId=roomId;
-
-  const el=document.getElementById("app");
-
-  el.innerHTML=`
-    <div class="form">
-      <h2>غرفة البث المباشر 🔴</h2>
-      <p>مرحبا بك في غرفة NOVA CHAMPIONS</p>
-      <div id="liveRoomStatus" class="muted">
-        جاري الدخول إلى الغرفة...
-      </div>
-      <button class="btn danger" onclick="leaveLiveRoom()">
-        مغادرة الغرفة
-      </button>
-    </div>
-  `;
-
-  document.getElementById("liveRoomStatus").textContent=
-    "تم فتح الغرفة بنجاح. البث والصوت سنضيفهما في الخطوات القادمة.";
-}
-
-function leaveLiveRoom(){
-  currentLiveRoomId=null;
-  go("live");
-}
   async function playerSave(){
   const uid=currentUser?.uid;
   if(!uid)return;
