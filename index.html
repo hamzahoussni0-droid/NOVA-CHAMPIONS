@@ -440,6 +440,95 @@ async function playerResetPassword(){
   }
   }
   
+async function playerDashboard(){
+  const el=document.getElementById("app");
+  const uid=currentUser?.uid;
+  if(!uid)return;
+
+  el.innerHTML='<p>جاري تحميل معلوماتك...</p>';
+
+  try{
+    const [profileDoc,teamDoc]=await Promise.all([
+      cloud.collection("playerProfiles").doc(uid).get(),
+      cloud.collection("playerTeams").doc(uid).get()
+    ]);
+
+    const p=profileDoc.exists?profileDoc.data():{};
+    const team=teamDoc.exists?teamDoc.data():{};
+
+    if(!currentUser||currentUser.uid!==uid)return;
+
+    el.innerHTML=`<div class="form">
+      <h2>حساب اللاعب</h2>
+      <label>الاسم الكامل</label>
+      <input id="editPlayerName" value="${esc(p.name||"")}">
+
+      <label>البريد الإلكتروني</label>
+      <input value="${esc(currentUser.email||"")}" disabled>
+
+      <label>رقم الهاتف</label>
+      <input id="editPlayerPhone" value="${esc(p.phone||"")}">
+
+      <h3>الفريق ديالك</h3>
+      <label>اسم الفريق</label>
+      <input id="editPlayerTeam" value="${esc(team.name||"")}">
+
+      <label>تقييم الفريق</label>
+      <input id="editPlayerOverall" type="number" min="100" max="160" value="${Number(team.overall)||100}">
+
+      <label>التشكيلة</label>
+      <select id="editPlayerFormation">
+        ${["4-3-3","4-4-2","3-5-2","4-2-3-1"].map(f=>`<option value="${f}" ${team.formation===f?"selected":""}>${f}</option>`).join("")}
+      </select>
+
+      <button class="btn primary" onclick="playerSave()">حفظ التعديلات</button>
+      <p id="playerEditError" class="muted"></p>
+      <button class="btn danger" onclick="auth.signOut()">تسجيل الخروج</button>
+    </div>`;
+  }catch(e){
+    el.innerHTML="تعذر تحميل المعلومات: "+esc(e.message||e);
+  }
+}
+
+async function playerSave(){
+  const uid=currentUser?.uid;
+  if(!uid)return;
+
+  const name=document.getElementById("editPlayerName").value.trim();
+  const phone=document.getElementById("editPlayerPhone").value.trim();
+  const teamName=document.getElementById("editPlayerTeam").value.trim();
+  const overall=Number(document.getElementById("editPlayerOverall").value);
+  const formation=document.getElementById("editPlayerFormation").value;
+  const err=document.getElementById("playerEditError");
+
+  if(!name||!phone||!teamName){
+    err.textContent="عمر جميع الخانات";
+    return;
+  }
+
+  if(!Number.isInteger(overall)||overall<100||overall>160){
+    err.textContent="التقييم خاصو يكون بين 100 و160";
+    return;
+  }
+
+  try{
+    err.textContent="جاري الحفظ...";
+    const now=Date.now();
+
+    await cloud.collection("playerProfiles").doc(uid).update({
+      name,phone,updatedAt:now
+    });
+
+    await cloud.collection("playerTeams").doc(uid).update({
+      name:teamName,overall,formation,updatedAt:now
+    });
+
+    err.textContent="تم حفظ التعديلات بنجاح ❤️";
+  }catch(e){
+    err.textContent="تعذر الحفظ: "+(e.message||e);
+  }
+}
+  
 startCloudSync();
 render();
 
