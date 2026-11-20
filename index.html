@@ -272,13 +272,30 @@ function render(){nav();let el=document.getElementById("app");let l=current();
 if(page==="player"){
   if(!currentUser){
     el.innerHTML=`<div class="form">
-      <h2>حساب اللاعب</h2>
-      <p>خاصك تسجل الدخول باش تدخل لحسابك.</p>
+      <h2>حساب اللاعب | Player Account</h2>
+      <h3>تسجيل الدخول</h3>
       <input id="playerEmail" type="email" placeholder="البريد الإلكتروني">
       <input id="playerPassword" type="password" placeholder="كلمة المرور">
       <button class="btn primary" onclick="playerLogin()">دخول</button>
-      <button class="btn" onclick="playerRegister()">إنشاء حساب جديد</button>
       <button class="btn" onclick="playerResetPassword()">نسيت كلمة المرور؟</button>
+      <hr>
+      <h3>إنشاء حساب جديد</h3>
+      <input id="regName" placeholder="الاسم الكامل">
+      <input id="regEmail" type="email" placeholder="البريد الإلكتروني">
+      <input id="regPhone" type="tel" placeholder="رقم الهاتف">
+      <input id="regPassword" type="password" placeholder="كلمة المرور">
+      <h3>إنشاء الفريق الخاص بك</h3>
+      <input id="regTeam" placeholder="اسم الفريق">
+      <label>تقييم الفريق (100 حتى 160)</label>
+      <input id="regOverall" type="number" min="100" max="160" value="100">
+      <label>التشكيلة</label>
+      <select id="regFormation">
+        <option value="4-3-3">4-3-3</option>
+        <option value="4-4-2">4-4-2</option>
+        <option value="3-5-2">3-5-2</option>
+        <option value="4-2-3-1">4-2-3-1</option>
+      </select>
+      <button class="btn primary" onclick="playerRegister()">إنشاء الحساب والفريق</button>
       <p id="playerError" class="muted"></p>
     </div>`;
   }else{
