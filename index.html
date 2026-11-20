@@ -74,6 +74,7 @@ const firebaseConfig = {
 };
 firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
+console.log("PeerJS:", typeof Peer);
 const cloud = firebase.firestore();
 let cloudReady = false;
 let syncError = "";
