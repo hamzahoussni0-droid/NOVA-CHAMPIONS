@@ -652,6 +652,9 @@ async function playerSave(){
   try{
     err.textContent="جاري الحفظ...";
     const now=Date.now();
+    const logoFile=document.getElementById("editPlayerLogo")?.files?.[0];
+const oldTeam=(await cloud.collection("playerTeams").doc(uid).get()).data()||{};
+const logoUrl=logoFile?await uploadTeamImage(logoFile):(oldTeam.logoUrl||"");
 
     await cloud.collection("playerProfiles").doc(uid).update({
       name,phone,updatedAt:now
