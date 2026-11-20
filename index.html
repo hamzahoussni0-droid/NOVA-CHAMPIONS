@@ -441,6 +441,28 @@ if(page==="player"){
   }
 }
 if(page==="live"){
+  if(!currentUser){
+    el.innerHTML=`
+      <div class="form">
+        <h2>${t("live")}</h2>
+        <p>خاصك تسجل الدخول لحساب اللاعب باش تنشئ أو تدخل لغرفة.</p>
+        <button class="btn primary" onclick="go('player')">تسجيل الدخول</button>
+      </div>
+    `;
+  }else{
+    el.innerHTML=`
+      <div class="form">
+        <h2>غرف البث المباشر 🔴</h2>
+        <p>مرحبا بك في غرف NOVA CHAMPIONS</p>
+        <input id="liveRoomName" placeholder="اسم الغرفة">
+        <button class="btn primary" onclick="createLiveRoom()">إنشاء غرفة</button>
+        <div id="liveRoomsList">
+          <p class="muted">جاري تحميل الغرف...</p>
+        </div>
+      </div>
+    `;
+  }
+}
   el.innerHTML=`
     <div class="form">
       <h2>${t("live")}</h2>
