@@ -764,16 +764,10 @@ async function loadLiveRooms(){
   }
 }
     function joinLiveRoom(roomId){
-  if(typeof SimplePeer === "undefined"){
-    alert("مكتبة الاتصال لم يتم تحميلها");
-    return;
-  }
-
-  alert("مكتبة الاتصال جاهزة");
-    }
   alert("تم اختيار الغرفة: " + roomId);
-    }
-  async function playerSave(){
+}
+
+async function playerSave(){
   const uid=currentUser?.uid;
   if(!uid)return;
 
