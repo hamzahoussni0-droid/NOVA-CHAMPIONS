@@ -763,9 +763,99 @@ async function loadLiveRooms(){
     box.innerHTML='<p class="muted">تعذر تحميل الغرف: '+esc(e.message||e)+'</p>';
   }
 }
-    function joinLiveRoom(roomId){
-  alert("تم اختيار الغرفة: " + roomId);
+
+async function joinLiveRoom(roomId){
+  if(!currentUser){
+    alert("خاصك تسجل الدخول أولاً");
+    return;
+  }
+
+  try{
+    const roomRef=cloud.collection("liveRooms").doc(roomId);
+    const roomSnap=await roomRef.get();
+
+    if(!roomSnap.exists){
+      alert("الغرفة غير موجودة");
+      return;
+    }
+
+    const room=roomSnap.data();
+
+    if(room.active!==true){
+      alert("هاد الغرفة مغلقة");
+      return;
+    }
+
+    await roomRef.collection("participants")
+      .doc(currentUser.uid).set({
+        uid:currentUser.uid,
+        name:currentUser.email||"لاعب",
+        joinedAt:firebase.firestore.FieldValue.serverTimestamp()
+      });
+
+    liveRoomId=roomId;
+
+    if(liveRoomUnsub){
+      liveRoomUnsub();
+      liveRoomUnsub=null;
+    }
+
+    const el=document.getElementById("app");
+
+    el.innerHTML=`
+      <div class="form">
+        <h2>🔴 ${esc(room.name||"غرفة البث")}</h2>
+        <p class="muted">أنت الآن داخل الغرفة</p>
+
+        <h3>المشاركون</h3>
+        <div id="liveParticipants">
+          جاري تحميل المشاركين...
+        </div>
+
+        <button class="btn" onclick="leaveLiveRoom()">
+          مغادرة الغرفة
+        </button>
+      </div>
+    `;
+
+    liveRoomUnsub=roomRef.collection("participants")
+      .onSnapshot(snap=>{
+        const box=document.getElementById("liveParticipants");
+        if(!box)return;
+
+        box.innerHTML=snap.empty
+          ?'<p class="muted">لا يوجد مشاركون</p>'
+          :snap.docs.map(doc=>
+            `<div class="card">${esc(doc.data().name||"لاعب")}</div>`
+          ).join("");
+      });
+
+  }catch(e){
+    alert("تعذر دخول الغرفة: "+(e.message||e));
+  }
 }
+
+async function leaveLiveRoom(){
+  if(liveRoomUnsub){
+    liveRoomUnsub();
+    liveRoomUnsub=null;
+  }
+
+  if(liveRoomId && currentUser){
+    try{
+      await cloud.collection("liveRooms")
+        .doc(liveRoomId)
+        .collection("participants")
+        .doc(currentUser.uid).delete();
+    }catch(e){
+      console.log(e);
+    }
+  }
+
+  liveRoomId=null;
+  go("live");
+}
+
 
 async function playerSave(){
   const uid=currentUser?.uid;
