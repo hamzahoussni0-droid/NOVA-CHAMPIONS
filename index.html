@@ -269,6 +269,26 @@ async function publishNewsArticle(){if(!isAdmin)return;const title=document.getE
 async function deleteNewsArticle(id){if(!isAdmin||!confirm('واش متأكد بغيتي تحذف هاد المقال؟'))return;try{await cloud.collection('articles').doc(id).delete();articles=articles.filter(x=>x.id!==id);if(openedArticleId===id)openedArticleId='';render()}catch(e){alert('تعذر حذف المقال: '+(e.message||e))}}
 
 function render(){nav();let el=document.getElementById("app");let l=current();
+if(page==="player"){
+  if(!currentUser){
+    el.innerHTML=`<div class="form">
+      <h2>حساب اللاعب</h2>
+      <p>خاصك تسجل الدخول باش تدخل لحسابك.</p>
+      <input id="playerEmail" type="email" placeholder="البريد الإلكتروني">
+      <input id="playerPassword" type="password" placeholder="كلمة المرور">
+      <button class="btn primary" onclick="playerLogin()">دخول</button>
+      <button class="btn" onclick="playerRegister()">إنشاء حساب جديد</button>
+      <button class="btn" onclick="playerResetPassword()">نسيت كلمة المرور؟</button>
+      <p id="playerError" class="muted"></p>
+    </div>`;
+  }else{
+    el.innerHTML=`<div class="card">
+      <h2>حساب اللاعب</h2>
+      <p>${esc(currentUser.email||"")}</p>
+      <button class="btn danger" onclick="auth.signOut()">تسجيل الخروج</button>
+    </div>`;
+  }
+}
 if(page==="home"){el.innerHTML=`<section class="hero"><strong>${t("welcome")}</strong><p>${t("subtitle")}</p><span class="pill">NOVA CHAMPIONS OFFICIAL</span></section><div class="stats"><div class="stat"><b>${db.leagues.length}</b>${t("competitions")}</div><div class="stat"><b>${db.leagues.reduce((n,x)=>n+x.teams.length,0)}</b>${t("teams")}</div><div class="stat"><b>${db.matches.length}</b>${t("played")}</div></div><h2>${t("competitions")}</h2>${db.leagues.length?db.leagues.map(x=>`<div class="card row"><div><b>${esc(x.name)}</b><div class="muted">${esc(x.season)} • ${x.teams.length} ${t("teams")} • ${x.mode==="cup"?t("cupMode"):x.mode==="champions"?t("championsMode"):t("leagueMode")}</div></div><button class="btn" onclick="selected='${x.id}';go('table')">${t("table")}</button></div>`).join(""):`<p class="muted">${t("noLeagues")}</p>`}<h2>${t("latest")}</h2>${db.matches.slice(-5).reverse().map(m=>`<div class="row"><span>${esc(m.h)}</span><b style="color:var(--gold)">${m.hs} - ${m.as}</b><span>${esc(m.a)}</span></div>`).join("")||`<p class="muted">${t("noMatches")}</p>`}<p class="small">${t("demo")}</p>`}
 if(page==="news"){el.innerHTML=newsPage()}
 if(page==="predictions"){el.innerHTML=predictionsPage()}
