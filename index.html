@@ -757,6 +757,9 @@ async function loadLiveRooms(){
     box.innerHTML='<p class="muted">تعذر تحميل الغرف: '+esc(e.message||e)+'</p>';
   }
 }
+    function joinLiveRoom(roomId){
+  alert("تم اختيار الغرفة: " + roomId);
+    }
   async function playerSave(){
   const uid=currentUser?.uid;
   if(!uid)return;
