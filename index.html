@@ -575,10 +575,11 @@ async function playerDashboard(){
 
       <h3>الفريق ديالك</h3>
       <label>اسم الفريق</label>
-      <input id="editPlayerTeam" value="${esc(team.name||"")}">
-
+      <input id="editPlayerTeam" value="${esc(team.name||"")}"
       <label>تقييم الفريق</label>
       <input id="editPlayerOverall" type="number" min="100" max="160" value="${Number(team.overall)||100}">
+<label>صورة الفريق (اختيارية)</label>
+<input id="editPlayerLogo" type="file" accept="image/*">
 
       <label>التشكيلة</label>
       <select id="editPlayerFormation">
