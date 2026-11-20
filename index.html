@@ -142,6 +142,7 @@ function go(p){page=p;render()}function setLang(v){lang=v;localStorage.novaLang=
 function teamStats(name){const out={fans:0,p:0,w:0,d:0,l:0,gf:0,ga:0,gd:0,pts:0};const master=(db.teams||[]).find(x=>x.name===name);out.fans=Number(master?.fans||0);const counted=db.matches.filter(m=>(m.h===name||m.a===name)&&m.hs!==null&&m.as!==null&&Number.isFinite(Number(m.hs))&&Number.isFinite(Number(m.as)));const cupGroups=new Map();counted.filter(m=>m.cup||String(m.id).startsWith("CUP_")).forEach(m=>{const l=db.leagues.find(x=>String(x.id)===String(m.league));const key=[String(m.league),Number(m.round)||1,...[String(m.h||""),String(m.a||"")].sort(),l?.cupFormat==="homeAway"?(m.leg||"home"):"single"].join("|");if(!cupGroups.has(key))cupGroups.set(key,m);});const nonCup=counted.filter(m=>!(m.cup||String(m.id).startsWith("CUP_")));[...nonCup,...cupGroups.values()].forEach(m=>{const home=m.h===name,forUs=Number(home?m.hs:m.as),against=Number(home?m.as:m.hs);out.p++;out.gf+=forUs;out.ga+=against;if(forUs>against){out.w++;out.pts+=3}else if(forUs<against){out.l++}else{out.d++;out.pts++;}});out.gd=out.gf-out.ga;return out;}
 function registryTeamId(name){return "TEAM_"+encodeURIComponent(name).slice(0,700);}
 function migrateLegacyTeams(){if(!isAdmin||legacyMigrationRunning||!db.leagues.length)return;legacyMigrationRunning=true;(async()=>{try{const names=[...new Set(db.leagues.flatMap(l=>l.teams||[]).filter(Boolean))];for(const name of names){const id=registryTeamId(name);if((db.teams||[]).some(x=>x.name===name))continue;const ref=cloud.collection("teams").doc(id),snap=await ref.get();if(!snap.exists){const team={id,name,fans:0};await ref.set(team);db.teams.push(team);}}localStorage.novaDB=JSON.stringify(db);}catch(e){syncError=e.message||String(e);}finally{legacyMigrationRunning=false;render();}})()}
+
 async function loadAdminPlayerTeams(){
   if(!isAdmin)return;
 
@@ -151,13 +152,17 @@ async function loadAdminPlayerTeams(){
   box.innerHTML='<p class="muted">جاري تحميل فرق اللاعبين...</p>';
 
   try{
-    const [teamsSnap,profilesSnap]=await Promise.all([
+    const [teamsSnap,profilesSnap,bannedSnap]=await Promise.all([
       cloud.collection("playerTeams").get(),
-      cloud.collection("playerProfiles").get()
+      cloud.collection("playerProfiles").get(),
+      cloud.collection("bannedUsers").get()
     ]);
 
     const profiles={};
     profilesSnap.docs.forEach(d=>profiles[d.id]=d.data());
+
+    const banned={};
+    bannedSnap.docs.forEach(d=>banned[d.id]=true);
 
     if(!teamsSnap.size){
       box.innerHTML='<p class="muted">لا توجد فرق لاعبين حالياً</p>';
@@ -166,14 +171,17 @@ async function loadAdminPlayerTeams(){
 
     box.innerHTML=teamsSnap.docs.map(doc=>{
       const team=doc.data();
+      const uid=doc.id;
       const owner=profiles[team.ownerUid]||{};
       const st=teamStats(team.name);
+      const isBlocked=!!banned[uid];
 
       return `<div class="card">
         <h3>${esc(team.name||"")}</h3>
         <p>صاحب الفريق: ${esc(owner.name||"غير معروف")}</p>
         <p>الهاتف: ${esc(owner.phone||"—")}</p>
         <p>التقييم: ${Number(team.overall)||0} | التشكيلة: ${esc(team.formation||"—")}</p>
+        <p>${isBlocked?"🔴 الحساب محظور":"🟢 الحساب نشيط"}</p>
         <div class="stats">
           <div class="stat"><b>${st.p}</b>مباريات</div>
           <div class="stat"><b>${st.w}</b>انتصارات</div>
@@ -182,13 +190,45 @@ async function loadAdminPlayerTeams(){
           <div class="stat"><b>${st.gf}:${st.ga}</b>الأهداف</div>
           <div class="stat"><b>${st.pts}</b>النقاط</div>
         </div>
+        <button class="btn ${isBlocked?"primary":"danger"}"
+          onclick="togglePlayerBan('${uid}',${isBlocked})">
+          ${isBlocked?"رفع الحظر":"حظر اللاعب"}
+        </button>
       </div>`;
     }).join("");
 
   }catch(e){
     box.innerHTML='<p class="muted">خطأ: '+esc(e.message||e)+'</p>';
   }
+}
+
+async function togglePlayerBan(uid,isBlocked){
+  if(!isAdmin || !uid)return;
+
+  const action=isBlocked?"رفع الحظر عن اللاعب":"حظر اللاعب";
+
+  if(!confirm("واش متأكد من "+action+"؟"))return;
+
+  try{
+    const ref=cloud.collection("bannedUsers").doc(uid);
+
+    if(isBlocked){
+      await ref.delete();
+      alert("تم رفع الحظر بنجاح");
+    }else{
+      await ref.set({
+        uid:uid,
+        bannedAt:Date.now()
+      });
+      alert("تم حظر اللاعب بنجاح");
+    }
+
+    await loadAdminPlayerTeams();
+
+  }catch(e){
+    alert("تعذر تنفيذ العملية: "+(e.message||e));
   }
+  
 function adminTeamsManager(){const teams=db.teams||[];return `<section class="admin-section"><h2>${t("manageTeams")}</h2><div class="form"><label>${t("teamName")}</label><input id="registryTeamName" placeholder="${t("teamName")}"><label>عدد الأنصار / Fans</label><input id="registryTeamFans" type="number" min="0" step="1" value="0"><label>رقم WhatsApp (مع مفتاح الدولة)</label><input id="registryTeamWhatsapp" type="tel" placeholder="+2126XXXXXXXX"><label>لائحة اللاعبين (كل لاعب فسطر)</label><textarea id="registryTeamPlayers" placeholder="اسم اللاعب الأول&#10;اسم اللاعب الثاني"></textarea><label>صورة حساب الفريق</label><input id="registryTeamImage" type="file" accept="image/*"><button class="btn primary" onclick="createRegistryTeam()">${t("addTeam")}</button></div>${teams.length?teams.map(team=>{const st=teamStats(team.name);return `<div class="card"><div class="row"><div style="display:flex;align-items:center;gap:10px">${team.imageUrl?`<img src="${esc(team.imageUrl)}" alt="" style="width:48px;height:48px;object-fit:cover;border-radius:50%">`:`<span class="team-mark">${esc(team.name.slice(0,2).toUpperCase())}</span>`}<b>${esc(team.name)}</b></div><span class="pill">${st.fans} Fans</span></div><div class="stats"><div class="stat"><b>${st.p}</b>${t("played")}</div><div class="stat"><b>${st.w}-${st.d}-${st.l}</b>W-D-L</div><div class="stat"><b>${st.gf}:${st.ga}</b>GF / GA</div><div class="stat"><b>${st.gd}</b>GD</div><div class="stat"><b>${st.pts}</b>${t("pts")}</div><div class="stat"><b>${st.fans}</b>Fans</div></div><div class="admin-actions"><button class="btn sm" onclick="editRegistryTeam('${encodeURIComponent(team.id)}')">${t("edit")}</button><label class="btn sm" style="display:inline-block">تغيير الصورة<input type="file" accept="image/*" style="display:none" onchange="updateTeamLogo('${encodeURIComponent(team.id)}',this)"></label><button class="btn danger sm" onclick="deleteRegistryTeam('${encodeURIComponent(team.id)}')">${t("delete")}</button></div></div>`}).join(""):`<p class="muted">${t("empty")}</p>`}</section>`}async function uploadTeamImage(file){if(!file)return "";if(!file.type.startsWith("image/"))throw new Error("اختار صورة صالحة");if(file.size>5*1024*1024)throw new Error("حجم الصورة خاصو يكون أقل من 5MB");const data=new FormData();data.append("file",file);data.append("upload_preset","nova_teams");data.append("folder","nova-teams");const res=await fetch(`https://api.cloudinary.com/v1_1/${cloudinaryConfig.cloudName}/image/upload`,{method:"POST",body:data});const json=await res.json();if(!res.ok||!json.secure_url)throw new Error(json.error?.message||"فشل رفع الصورة");return json.secure_url}
 async function createRegistryTeam(){if(!isAdmin)return;const name=document.getElementById("registryTeamName")?.value.trim(),fans=Number(document.getElementById("registryTeamFans")?.value||0),whatsapp=(document.getElementById("registryTeamWhatsapp")?.value||"").trim(),players=(document.getElementById("registryTeamPlayers")?.value||"").split(/\r?\n/).map(x=>x.trim()).filter(Boolean),file=document.getElementById("registryTeamImage")?.files?.[0];if(!name)return;if((db.teams||[]).some(x=>x.name.toLowerCase()===name.toLowerCase()))return alert("الفريق مسجل من قبل");if(whatsapp&&!/^\+?[0-9]{8,15}$/.test(whatsapp.replace(/[\s()-]/g,"")))return alert("رقم WhatsApp غير صحيح، استعمل مفتاح الدولة");try{const imageUrl=await uploadTeamImage(file);const team={id:registryTeamId(name),name,fans:Number.isFinite(fans)&&fans>=0?fans:0,whatsapp,players,imageUrl};await cloud.collection("teams").doc(team.id).set(team);db.teams.push(team);localStorage.novaDB=JSON.stringify(db);render()}catch(e){alert("تعذر تسجيل الفريق: "+(e.message||e))}}
 async function editRegistryTeam(encodedId){if(!isAdmin)return;const id=decodeURIComponent(encodedId),team=(db.teams||[]).find(x=>x.id===id);if(!team)return;const name=prompt(t("editTeam"),team.name);if(name===null)return;const clean=name.trim();if(!clean)return;if(clean!==team.name&&(db.teams||[]).some(x=>x.name.toLowerCase()===clean.toLowerCase()))return alert("الفريق موجود مسبقاً");const fansText=prompt("عدد الأنصار / Fans",String(team.fans||0));if(fansText===null)return;const fans=Number(fansText);if(!Number.isInteger(fans)||fans<0)return alert("عدد الأنصار غير صحيح");const phone=prompt("رقم WhatsApp مع مفتاح الدولة",team.whatsapp||"");if(phone===null)return;const whatsapp=phone.trim();if(whatsapp&&!/^\+?[0-9]{8,15}$/.test(whatsapp.replace(/[\s()-]/g,"")))return alert("رقم WhatsApp غير صحيح");const playersText=prompt("لائحة اللاعبين، كل لاعب فسطر",(team.players||[]).join("\n"));if(playersText===null)return;const old=team.name;team.name=clean;team.fans=fans;team.whatsapp=whatsapp;team.players=playersText.split(/\r?\n/).map(x=>x.trim()).filter(Boolean);if(old!==clean){db.leagues.forEach(l=>{l.teams=(l.teams||[]).map(n=>n===old?clean:n)});db.matches.forEach(m=>{if(m.h===old)m.h=clean;if(m.a===old)m.a=clean});}try{const batch=cloud.batch();batch.set(cloud.collection("teams").doc(id),team);if(old!==clean){db.leagues.forEach(l=>batch.set(cloud.collection("leagues").doc(String(l.id)),{...l}));db.matches.forEach(m=>batch.set(cloud.collection("matches").doc(String(m.id)),m));}await batch.commit();localStorage.novaDB=JSON.stringify(db);render()}catch(e){alert("Firebase: "+(e.message||e))}}
