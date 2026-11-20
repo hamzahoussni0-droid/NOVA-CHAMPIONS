@@ -485,7 +485,40 @@ async function playerDashboard(){
     el.innerHTML="تعذر تحميل المعلومات: "+esc(e.message||e);
   }
 }
+async function loadPlayerTeams(){
+  if(!isAdmin)return;
 
+  const box=document.getElementById("leagueTeamChoices");
+  if(!box)return;
+
+  box.innerHTML='<p class="muted">جاري تحميل فرق اللاعبين...</p>';
+
+  try{
+    const snap=await cloud.collection("playerTeams").get();
+
+    const teams=snap.docs.map(doc=>doc.data());
+
+    box.innerHTML=
+      (db.teams||[]).map(team=>`
+        <label style="display:block;padding:6px">
+          <input class="league-team-choice" type="checkbox" value="${esc(team.name)}" style="width:auto;margin-inline-end:8px">
+          ${esc(team.name)}
+        </label>
+      `).join("")+
+      teams.map(team=>`
+        <label style="display:block;padding:6px">
+          <input class="league-team-choice" type="checkbox" value="${esc(team.name)}" style="width:auto;margin-inline-end:8px">
+          ${esc(team.name)} — فريق لاعب
+        </label>
+      `).join("");
+
+    if(!teams.length && !(db.teams||[]).length){
+      box.innerHTML='<p class="muted">لا توجد فرق مسجلة حالياً</p>';
+    }
+  }catch(e){
+    box.innerHTML='<p class="muted">تعذر تحميل الفرق: '+esc(e.message||e)+'</p>';
+  }
+}
 async function playerSave(){
   const uid=currentUser?.uid;
   if(!uid)return;
