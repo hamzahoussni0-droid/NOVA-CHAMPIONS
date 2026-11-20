@@ -362,6 +362,84 @@ async function saveMatchDetails(encodedId){
 }
 async function editMatch(id){return saveMatchDetails(encodeURIComponent(String(id)));}
 async function deleteMatch(id){if(!isAdmin||!confirm(t("confirmDelete")))return;try{await cloud.collection("matches").doc(String(id)).delete();db.matches=db.matches.filter(m=>String(m.id)!==String(id));localStorage.novaDB=JSON.stringify(db);render()}catch(e){alert("Firebase: "+(e.message||e))}}
+
+async function playerLogin(){
+  const email=document.getElementById("playerEmail")?.value.trim();
+  const password=document.getElementById("playerPassword")?.value;
+  const err=document.getElementById("playerError");
+  if(!email||!password){if(err)err.textContent="دخل البريد الإلكتروني وكلمة المرور";return;}
+  try{
+    await auth.signInWithEmailAndPassword(email,password);
+    go("player");
+  }catch(e){
+    if(err)err.textContent=e.message||"تعذر تسجيل الدخول";
+  }
+}
+
+async function playerRegister(){
+  const name=document.getElementById("regName")?.value.trim();
+  const email=document.getElementById("regEmail")?.value.trim();
+  const phone=document.getElementById("regPhone")?.value.trim();
+  const password=document.getElementById("regPassword")?.value;
+  const teamName=document.getElementById("regTeam")?.value.trim();
+  const overall=Number(document.getElementById("regOverall")?.value);
+  const formation=document.getElementById("regFormation")?.value;
+  const err=document.getElementById("playerError");
+
+  if(!name||!email||!phone||!password||!teamName){
+    if(err)err.textContent="عمر جميع الخانات";
+    return;
+  }
+  if(password.length<6){
+    if(err)err.textContent="كلمة المرور خاصها تكون 6 أحرف على الأقل";
+    return;
+  }
+  if(!Number.isInteger(overall)||overall<100||overall>160){
+    if(err)err.textContent="التقييم خاصو يكون بين 100 و160";
+    return;
+  }
+
+  try{
+    if(err)err.textContent="جاري إنشاء الحساب...";
+    const credential=await auth.createUserWithEmailAndPassword(email,password);
+    const uid=credential.user.uid;
+    const now=Date.now();
+
+    await cloud.collection("playerProfiles").doc(uid).set({
+      uid,name,phone,createdAt:now,updatedAt:now
+    });
+
+    await cloud.collection("playerTeams").doc(uid).set({
+      ownerUid:uid,
+      name:teamName,
+      overall,
+      formation,
+      logoUrl:"",
+      createdAt:now,
+      updatedAt:now
+    });
+
+    go("player");
+  }catch(e){
+    if(err)err.textContent=e.message||"تعذر إنشاء الحساب";
+  }
+}
+
+async function playerResetPassword(){
+  const email=document.getElementById("playerEmail")?.value.trim();
+  const err=document.getElementById("playerError");
+  if(!email){
+    if(err)err.textContent="دخل البريد الإلكتروني أولاً";
+    return;
+  }
+  try{
+    await auth.sendPasswordResetEmail(email);
+    if(err)err.textContent="تم إرسال رابط تغيير كلمة المرور إلى بريدك الإلكتروني";
+  }catch(e){
+    if(err)err.textContent=e.message||"تعذر إرسال الرابط";
+  }
+  }
+  
 startCloudSync();
 render();
 
