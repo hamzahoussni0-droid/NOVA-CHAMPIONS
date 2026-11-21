@@ -744,7 +744,8 @@ liveRoom.on(LivekitClient.RoomEvent.TrackSubscribed, (track) => {
 });
 
 liveRoom.on(LivekitClient.RoomEvent.TrackUnsubscribed, (track) => {
-  track.detach(videoElement);
+  const videoElement = document.getElementById("liveVideo");
+  if (videoElement) track.detach(videoElement);
 });
 
 await liveRoom.connect(liveTokenData.serverUrl, liveTokenData.token);
