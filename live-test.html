@@ -730,9 +730,11 @@ async function joinLiveRoom(roomId){
 });
 
 const liveTokenData = await liveTokenResponse.json();
-const liveRoom = new LivekitClient.Room();
+if (!liveTokenResponse.ok) {
+  throw new Error(liveTokenData.error || "تعذر الاتصال بالبث المباشر");
+}
 
-await liveRoom.connect(liveTokenData.serverUrl, liveTokenData.token);
+const liveRoom = new LivekitClient.Room();
 
 const videoElement = document.getElementById("liveVideo");
 
@@ -745,6 +747,8 @@ liveRoom.on(LivekitClient.RoomEvent.TrackSubscribed, (track) => {
 liveRoom.on(LivekitClient.RoomEvent.TrackUnsubscribed, (track) => {
   track.detach(videoElement);
 });
+
+await liveRoom.connect(liveTokenData.serverUrl, liveTokenData.token);
 if (!liveTokenResponse.ok) {
   throw new Error(liveTokenData.error || "تعذر الاتصال بالبث المباشر");
 }
