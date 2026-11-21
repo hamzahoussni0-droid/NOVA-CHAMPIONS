@@ -749,9 +749,6 @@ liveRoom.on(LivekitClient.RoomEvent.TrackUnsubscribed, (track) => {
 });
 
 await liveRoom.connect(liveTokenData.serverUrl, liveTokenData.token);
-if (!liveTokenResponse.ok) {
-  throw new Error(liveTokenData.error || "تعذر الاتصال بالبث المباشر");
-}
     const nick=guest.isAnonymous?"مشاهد "+guest.uid.slice(0,5):(guest.email||"لاعب");
     await roomRef.collection("participants").doc(guest.uid).set({uid:guest.uid,name:nick,joinedAt:firebase.firestore.FieldValue.serverTimestamp(),role:"viewer"});
     if(liveRoomUnsub)liveRoomUnsub();
