@@ -858,7 +858,31 @@ async function leaveLiveRoom(){
   go("live");
 }
 
+async function testScreenShare(){
+  try{
+    if(!navigator.mediaDevices?.getDisplayMedia){
+      alert("المتصفح لا يدعم مشاركة الشاشة");
+      return;
+    }
 
+    const stream=await navigator.mediaDevices.getDisplayMedia({
+      video:true,
+      audio:false
+    });
+
+    liveScreenStream=stream;
+
+    alert("مشاركة الشاشة خدامة بنجاح! 🎉");
+
+    stream.getVideoTracks()[0].onended=()=>{
+      liveScreenStream=null;
+      alert("توقفت مشاركة الشاشة");
+    };
+
+  }catch(e){
+    alert("تعذر تشغيل مشاركة الشاشة: "+(e.message||e));
+  }
+}
 async function playerSave(){
   const uid=currentUser?.uid;
   if(!uid)return;
