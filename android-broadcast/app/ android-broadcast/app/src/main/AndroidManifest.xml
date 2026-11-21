@@ -11,7 +11,8 @@
         android:usesCleartextTraffic="false">
 
         <service
-    android:name=".ScreenCaptureService"
+    android:name="io.livekit.android.room.track.screencapture.ScreenCaptureService"
+    android:enabled="true"
     android:exported="false"
     android:foregroundServiceType="mediaProjection" />
         
