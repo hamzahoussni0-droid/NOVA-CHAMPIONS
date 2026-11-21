@@ -838,5 +838,4 @@ render();
 document.addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target?.id==='liveChatInput')sendLiveMessage();});
 window.addEventListener('load',()=>{const splash=document.getElementById('nova-splash-screen');if(splash)setTimeout(()=>splash.classList.add('is-hidden'),2600);});
 if('serviceWorker' in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(err=>console.warn('PWA service worker:',err)));}
-<script src="https://cdn.jsdelivr.net/npm/livekit-client/dist/livekit-client.umd.min.js"></script>
   </script></body></html>
