@@ -10,6 +10,11 @@
         android:theme="@android:style/Theme.Material.Light.NoActionBar"
         android:usesCleartextTraffic="false">
 
+        <service
+    android:name=".ScreenCaptureService"
+    android:exported="false"
+    android:foregroundServiceType="mediaProjection" />
+        
         <activity
             android:name=".MainActivity"
             android:exported="true">
