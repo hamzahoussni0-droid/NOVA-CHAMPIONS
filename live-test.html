@@ -687,13 +687,10 @@ async function loadPlayerTeams(){
   }
 }
 async function ensureLiveGuest(){
-  if(currentUser)return currentUser;
-  if(!auth.currentUser){
-    if(!auth.isSignInWithEmailLink && !auth.currentUser){
-      await auth.signInAnonymously();
-    }
-  }
-  return auth.currentUser;
+  // Reuse an existing Firebase session; otherwise create an anonymous viewer session.
+  if(auth.currentUser)return auth.currentUser;
+  const credential = await auth.signInAnonymously();
+  return credential.user || auth.currentUser;
 }
 async function createLiveRoom(){
   if(!currentUser || currentUser.isAnonymous)return alert("خاصك تدخل بحساب لاعب باش تنشئ غرفة.");
