@@ -736,8 +736,6 @@ if (!liveTokenResponse.ok) {
 
 const liveRoom = new LivekitClient.Room();
 
-const videoElement = document.getElementById("liveVideo");
-
 liveRoom.on(LivekitClient.RoomEvent.TrackSubscribed, (track) => {
   if (track.kind === "video" && videoElement) {
     track.attach(videoElement);
