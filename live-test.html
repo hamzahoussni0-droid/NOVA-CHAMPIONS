@@ -734,6 +734,20 @@ async function joinLiveRoom(roomId){
       <h3>💬 دردشة مباشرة</h3><div id="liveChatMessages" class="card" style="height:220px;overflow:auto"><p class="muted">جاري تحميل الرسائل...</p></div>
       <div class="row"><input id="liveChatInput" maxlength="400" placeholder="اكتب رسالة..." style="margin:0"><button class="btn primary" onclick="sendLiveMessage()">إرسال</button></div>
       <button class="btn" onclick="leaveLiveRoom()" style="margin-top:12px">مغادرة الغرفة</button></div>`;
+    const liveTokenResponse = await fetch("https://nova-champions-live.hamza-houssni0.workers.dev/token", {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json",
+    "Authorization": "Bearer " + await guest.getIdToken()
+  },
+  body: JSON.stringify({ roomId })
+});
+
+const liveTokenData = await liveTokenResponse.json();
+
+if (!liveTokenResponse.ok) {
+  throw new Error(liveTokenData.error || "تعذر الاتصال بالبث المباشر");
+}
     const liveRoom = new LivekitClient.Room();
 
 liveRoom.on(LivekitClient.RoomEvent.TrackSubscribed, (track) => {
